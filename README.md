@@ -1,5 +1,5 @@
 -- GROSSLib - Biblioteca de UI para Roblox
--- Versão: 2.0.0 COMPLETA - Com Temas e Todos os Elementos
+-- Versão: 2.0.1 - Dropdown e Abas Corrigidos
 
 local GROSSLib = {}
 local TweenService = game:GetService("TweenService")
@@ -225,12 +225,41 @@ function GROSSLib:CreateWindow(Config)
     CloseCorner.CornerRadius = UDim.new(0, 4)
     CloseCorner.Parent = CloseBtn
     
-    -- Container de Abas
+    -- Container de Abas com Scroll Horizontal
+    local TabButtonsContainer = Instance.new("Frame")
+    TabButtonsContainer.Size = UDim2.new(0, 450, 1, 0)
+    TabButtonsContainer.Position = UDim2.new(0.5, -225, 0, 0)
+    TabButtonsContainer.BackgroundTransparency = 1
+    TabButtonsContainer.ClipsDescendants = true
+    TabButtonsContainer.Parent = Header
+    
     local TabButtons = Instance.new("Frame")
-    TabButtons.Size = UDim2.new(0, 500, 1, 0)
-    TabButtons.Position = UDim2.new(0.5, -250, 0, 0)
+    TabButtons.Size = UDim2.new(0, 450, 1, 0)
+    TabButtons.Position = UDim2.new(0, 0, 0, 0)
     TabButtons.BackgroundTransparency = 1
-    TabButtons.Parent = Header
+    TabButtons.Parent = TabButtonsContainer
+    
+    local TabButtonsLayout = Instance.new("UIListLayout")
+    TabButtonsLayout.FillDirection = Enum.FillDirection.Horizontal
+    TabButtonsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+    TabButtonsLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+    TabButtonsLayout.Padding = UDim.new(0, 10)
+    TabButtonsLayout.Parent = TabButtons
+    
+    -- Sistema de scroll horizontal nas abas
+    local scrollPosition = 0
+    local maxScroll = 0
+    
+    TabButtonsContainer.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseWheel then
+            local delta = input.Position.Z * 30
+            scrollPosition = math.clamp(scrollPosition + delta, -maxScroll, 0)
+            
+            TweenService:Create(TabButtons, TweenInfo.new(0.2), {
+                Position = UDim2.new(0, scrollPosition, 0, 0)
+            }):Play()
+        end
+    end)
     
     -- Container de Conteúdo
     local ContentFrame = Instance.new("Frame")
@@ -382,8 +411,7 @@ function GROSSLib:CreateWindow(Config)
         -- Botão da Tab
         local Button = Instance.new("TextButton")
         Button.Name = name
-        Button.Size = UDim2.new(0, tabWidth, 1, 0)
-        Button.Position = UDim2.new(0, (tabCount - 1) * (tabWidth + 10), 0, 0)
+        Button.Size = UDim2.new(0, tabWidth, 0, 30)
         Button.BackgroundTransparency = 1
         Button.Text = name
         Button.TextColor3 = Window.CurrentTheme.SubText
@@ -405,6 +433,12 @@ function GROSSLib:CreateWindow(Config)
         Button.MouseButton1Click:Connect(function()
             SwitchTab(name)
         end)
+        
+        -- Atualizar tamanho do container e scroll máximo
+        task.wait()
+        local contentSize = TabButtonsLayout.AbsoluteContentSize.X
+        TabButtons.Size = UDim2.new(0, contentSize, 1, 0)
+        maxScroll = math.max(0, contentSize - TabButtonsContainer.AbsoluteSize.X)
         
         -- Conteúdo da Tab
         local TabContent = Instance.new("Frame")
@@ -698,7 +732,7 @@ function GROSSLib:CreateWindow(Config)
             end
             
             -- ═══════════════════════════════════════════════════════════
-            -- ELEMENTO: DROPDOWN
+            -- ELEMENTO: DROPDOWN (CORRIGIDO)
             -- ═══════════════════════════════════════════════════════════
             
             function Groupbox:AddDropdown(id, options)
@@ -711,13 +745,23 @@ function GROSSLib:CreateWindow(Config)
                     Open = false,
                 }
                 
+                -- Container principal que vai expandir
+                local DropdownContainer = Instance.new("Frame")
+                DropdownContainer.Size = UDim2.new(1, -20, 0, 35)
+                DropdownContainer.Position = UDim2.new(0, 10, 0, self.CurrentY)
+                DropdownContainer.BackgroundTransparency = 1
+                DropdownContainer.ClipsDescendants = false
+                DropdownContainer.ZIndex = 5
+                DropdownContainer.Parent = GroupFrame
+                
                 local DropdownFrame = Instance.new("Frame")
-                DropdownFrame.Size = UDim2.new(1, -20, 0, 35)
-                DropdownFrame.Position = UDim2.new(0, 10, 0, self.CurrentY)
+                DropdownFrame.Size = UDim2.new(1, 0, 0, 35)
+                DropdownFrame.Position = UDim2.new(0, 0, 0, 0)
                 DropdownFrame.BackgroundColor3 = Window.CurrentTheme.Element
                 DropdownFrame.BorderSizePixel = 0
                 DropdownFrame.ClipsDescendants = false
-                DropdownFrame.Parent = GroupFrame
+                DropdownFrame.ZIndex = 5
+                DropdownFrame.Parent = DropdownContainer
                 
                 table.insert(Window.ThemeableObjects, {Object = DropdownFrame, Property = "BackgroundColor3", ThemeKey = "Element"})
                 
@@ -729,6 +773,7 @@ function GROSSLib:CreateWindow(Config)
                 DropdownButton.Size = UDim2.new(1, 0, 0, 35)
                 DropdownButton.BackgroundTransparency = 1
                 DropdownButton.Text = ""
+                DropdownButton.ZIndex = 6
                 DropdownButton.Parent = DropdownFrame
                 
                 local DropdownLabel = Instance.new("TextLabel")
@@ -740,6 +785,7 @@ function GROSSLib:CreateWindow(Config)
                 DropdownLabel.Font = Enum.Font.Gotham
                 DropdownLabel.TextSize = 12
                 DropdownLabel.TextXAlignment = Enum.TextXAlignment.Left
+                DropdownLabel.ZIndex = 6
                 DropdownLabel.Parent = DropdownFrame
                 
                 table.insert(Window.ThemeableObjects, {Object = DropdownLabel, Property = "TextColor3", ThemeKey = "Text"})
@@ -752,19 +798,23 @@ function GROSSLib:CreateWindow(Config)
                 DropdownIndicator.TextColor3 = Window.CurrentTheme.SubText
                 DropdownIndicator.Font = Enum.Font.Gotham
                 DropdownIndicator.TextSize = 10
+                DropdownIndicator.ZIndex = 6
                 DropdownIndicator.Parent = DropdownFrame
                 
                 table.insert(Window.ThemeableObjects, {Object = DropdownIndicator, Property = "TextColor3", ThemeKey = "SubText"})
                 
-                local DropdownList = Instance.new("Frame")
+                -- Lista dropdown (aparece ABAIXO do botão)
+                local DropdownList = Instance.new("ScrollingFrame")
                 DropdownList.Size = UDim2.new(1, 0, 0, 0)
-                DropdownList.Position = UDim2.new(0, 0, 0, 35)
+                DropdownList.Position = UDim2.new(0, 0, 0, 37)
                 DropdownList.BackgroundColor3 = Window.CurrentTheme.Groupbox
                 DropdownList.BorderSizePixel = 0
                 DropdownList.Visible = false
                 DropdownList.ClipsDescendants = true
+                DropdownList.ScrollBarThickness = 4
+                DropdownList.CanvasSize = UDim2.new(0, 0, 0, 0)
                 DropdownList.ZIndex = 10
-                DropdownList.Parent = DropdownFrame
+                DropdownList.Parent = DropdownContainer
                 
                 table.insert(Window.ThemeableObjects, {Object = DropdownList, Property = "BackgroundColor3", ThemeKey = "Groupbox"})
                 
@@ -787,13 +837,14 @@ function GROSSLib:CreateWindow(Config)
                     
                     for _, value in pairs(self.Values) do
                         local Option = Instance.new("TextButton")
-                        Option.Size = UDim2.new(1, -4, 0, 25)
+                        Option.Size = UDim2.new(1, -8, 0, 25)
                         Option.BackgroundColor3 = Window.CurrentTheme.Element
                         Option.BorderSizePixel = 0
                         Option.Text = value
                         Option.TextColor3 = Window.CurrentTheme.Text
                         Option.Font = Enum.Font.Gotham
                         Option.TextSize = 11
+                        Option.ZIndex = 11
                         Option.Parent = DropdownList
                         
                         table.insert(Window.ThemeableObjects, {Object = Option, Property = "BackgroundColor3", ThemeKey = "Element"})
@@ -811,8 +862,14 @@ function GROSSLib:CreateWindow(Config)
                         end)
                     end
                     
-                    local listHeight = #self.Values * 27
-                    DropdownList.Size = UDim2.new(1, 0, 0, Dropdown.Open and listHeight or 0)
+                    task.wait()
+                    local contentHeight = ListLayout.AbsoluteContentSize.Y
+                    local maxHeight = math.min(contentHeight + 8, 150)
+                    DropdownList.CanvasSize = UDim2.new(0, 0, 0, contentHeight + 4)
+                    
+                    if Dropdown.Open then
+                        DropdownList.Size = UDim2.new(1, 0, 0, maxHeight)
+                    end
                 end
                 
                 function Dropdown:SetValue(value)
@@ -825,16 +882,12 @@ function GROSSLib:CreateWindow(Config)
                     Dropdown.Open = not Dropdown.Open
                     DropdownList.Visible = Dropdown.Open
                     
-                    local listHeight = #Dropdown.Values * 27
-                    TweenService:Create(DropdownList, TweenInfo.new(0.2), {
-                        Size = UDim2.new(1, 0, 0, Dropdown.Open and listHeight or 0)
-                    }):Play()
+                    local contentHeight = ListLayout.AbsoluteContentSize.Y
+                    local maxHeight = math.min(contentHeight + 8, 150)
                     
-                    if Dropdown.Open then
-                        DropdownFrame.Size = UDim2.new(1, -20, 0, 35 + listHeight)
-                    else
-                        DropdownFrame.Size = UDim2.new(1, -20, 0, 35)
-                    end
+                    TweenService:Create(DropdownList, TweenInfo.new(0.2), {
+                        Size = UDim2.new(1, 0, 0, Dropdown.Open and maxHeight or 0)
+                    }):Play()
                 end)
                 
                 Dropdown:Refresh()
@@ -1137,7 +1190,6 @@ function GROSSLib:CreateWindow(Config)
                     self.Callback(color)
                 end
                 
-                -- Exemplo básico de color picker (você pode expandir isso)
                 local ColorButton = Instance.new("TextButton")
                 ColorButton.Size = UDim2.new(1, 0, 1, 0)
                 ColorButton.BackgroundTransparency = 1
@@ -1145,7 +1197,6 @@ function GROSSLib:CreateWindow(Config)
                 ColorButton.Parent = ColorFrame
                 
                 ColorButton.MouseButton1Click:Connect(function()
-                    -- Aqui você pode adicionar um sistema de color picker mais complexo
                     local randomColor = Color3.fromRGB(
                         math.random(0, 255),
                         math.random(0, 255),
