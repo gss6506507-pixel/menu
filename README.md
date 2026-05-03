@@ -1,5 +1,5 @@
 -- GROSSLib - Biblioteca de UI para Roblox
--- Versão: 2.0.0 - Com Temas e Customização
+-- Versão: 2.0.0 COMPLETA - Com Temas e Todos os Elementos
 
 local GROSSLib = {}
 local TweenService = game:GetService("TweenService")
@@ -366,7 +366,10 @@ function GROSSLib:CreateWindow(Config)
         end
     end
     
-    -- Adicionar Tab
+    -- ═══════════════════════════════════════════════════════════
+    -- ADICIONAR TAB
+    -- ═══════════════════════════════════════════════════════════
+    
     function Window:AddTab(name)
         local Tab = {
             Name = name,
@@ -418,7 +421,9 @@ function GROSSLib:CreateWindow(Config)
             SwitchTab(name)
         end
         
-        -- [CONTINUA COM AS MESMAS FUNÇÕES DE GROUPBOX E ELEMENTOS...]
+        -- ═══════════════════════════════════════════════════════════
+        -- CRIAR GROUPBOX
+        -- ═══════════════════════════════════════════════════════════
         
         function Tab:AddLeftGroupbox(title)
             return self:CreateGroupbox(title, "Left")
@@ -474,8 +479,690 @@ function GROSSLib:CreateWindow(Config)
             Groupbox.Side = side
             table.insert(self.Groupboxes, Groupbox)
             
-            -- [CONTINUA COM OS ELEMENTOS - TOGGLE, SLIDER, DROPDOWN...]
-            -- Código dos elementos permanece o mesmo
+            -- Função helper para atualizar canvas
+            local function UpdateCanvasSize()
+                GroupFrame.CanvasSize = UDim2.new(0, 0, 0, Groupbox.CurrentY + 10)
+            end
+            
+            -- ═══════════════════════════════════════════════════════════
+            -- ELEMENTO: TOGGLE
+            -- ═══════════════════════════════════════════════════════════
+            
+            function Groupbox:AddToggle(id, options)
+                options = options or {}
+                local Toggle = {
+                    Value = options.Default or false,
+                    Callback = options.Callback or function() end,
+                }
+                
+                local ToggleFrame = Instance.new("Frame")
+                ToggleFrame.Size = UDim2.new(1, -20, 0, 30)
+                ToggleFrame.Position = UDim2.new(0, 10, 0, self.CurrentY)
+                ToggleFrame.BackgroundColor3 = Window.CurrentTheme.Element
+                ToggleFrame.BorderSizePixel = 0
+                ToggleFrame.Parent = GroupFrame
+                
+                table.insert(Window.ThemeableObjects, {Object = ToggleFrame, Property = "BackgroundColor3", ThemeKey = "Element"})
+                
+                local ToggleCorner = Instance.new("UICorner")
+                ToggleCorner.CornerRadius = UDim.new(0, 4)
+                ToggleCorner.Parent = ToggleFrame
+                
+                local ToggleLabel = Instance.new("TextLabel")
+                ToggleLabel.Size = UDim2.new(1, -50, 1, 0)
+                ToggleLabel.Position = UDim2.new(0, 10, 0, 0)
+                ToggleLabel.BackgroundTransparency = 1
+                ToggleLabel.Text = options.Text or "Toggle"
+                ToggleLabel.TextColor3 = Window.CurrentTheme.Text
+                ToggleLabel.Font = Enum.Font.Gotham
+                ToggleLabel.TextSize = 12
+                ToggleLabel.TextXAlignment = Enum.TextXAlignment.Left
+                ToggleLabel.Parent = ToggleFrame
+                
+                table.insert(Window.ThemeableObjects, {Object = ToggleLabel, Property = "TextColor3", ThemeKey = "Text"})
+                
+                local ToggleButton = Instance.new("TextButton")
+                ToggleButton.Size = UDim2.new(0, 40, 0, 20)
+                ToggleButton.Position = UDim2.new(1, -50, 0.5, -10)
+                ToggleButton.BackgroundColor3 = Toggle.Value and Window.CurrentTheme.Accent or Window.CurrentTheme.Border
+                ToggleButton.BorderSizePixel = 0
+                ToggleButton.Text = ""
+                ToggleButton.Parent = ToggleFrame
+                
+                local ToggleBtnCorner = Instance.new("UICorner")
+                ToggleBtnCorner.CornerRadius = UDim.new(1, 0)
+                ToggleBtnCorner.Parent = ToggleButton
+                
+                local ToggleIndicator = Instance.new("Frame")
+                ToggleIndicator.Size = UDim2.new(0, 16, 0, 16)
+                ToggleIndicator.Position = Toggle.Value and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
+                ToggleIndicator.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+                ToggleIndicator.BorderSizePixel = 0
+                ToggleIndicator.Parent = ToggleButton
+                
+                local IndicatorCorner = Instance.new("UICorner")
+                IndicatorCorner.CornerRadius = UDim.new(1, 0)
+                IndicatorCorner.Parent = ToggleIndicator
+                
+                function Toggle:SetValue(value)
+                    self.Value = value
+                    
+                    TweenService:Create(ToggleButton, TweenInfo.new(0.2), {
+                        BackgroundColor3 = value and Window.CurrentTheme.Accent or Window.CurrentTheme.Border
+                    }):Play()
+                    
+                    TweenService:Create(ToggleIndicator, TweenInfo.new(0.2), {
+                        Position = value and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
+                    }):Play()
+                    
+                    self.Callback(value)
+                end
+                
+                ToggleButton.MouseButton1Click:Connect(function()
+                    Toggle:SetValue(not Toggle.Value)
+                end)
+                
+                if id then
+                    getgenv().Toggles[id] = Toggle
+                end
+                
+                self.CurrentY = self.CurrentY + 35
+                UpdateCanvasSize()
+                
+                return Toggle
+            end
+            
+            -- ═══════════════════════════════════════════════════════════
+            -- ELEMENTO: SLIDER
+            -- ═══════════════════════════════════════════════════════════
+            
+            function Groupbox:AddSlider(id, options)
+                options = options or {}
+                local Slider = {
+                    Value = options.Default or options.Min or 0,
+                    Min = options.Min or 0,
+                    Max = options.Max or 100,
+                    Rounding = options.Rounding or 1,
+                    Callback = options.Callback or function() end,
+                }
+                
+                local SliderFrame = Instance.new("Frame")
+                SliderFrame.Size = UDim2.new(1, -20, 0, 45)
+                SliderFrame.Position = UDim2.new(0, 10, 0, self.CurrentY)
+                SliderFrame.BackgroundColor3 = Window.CurrentTheme.Element
+                SliderFrame.BorderSizePixel = 0
+                SliderFrame.Parent = GroupFrame
+                
+                table.insert(Window.ThemeableObjects, {Object = SliderFrame, Property = "BackgroundColor3", ThemeKey = "Element"})
+                
+                local SliderCorner = Instance.new("UICorner")
+                SliderCorner.CornerRadius = UDim.new(0, 4)
+                SliderCorner.Parent = SliderFrame
+                
+                local SliderLabel = Instance.new("TextLabel")
+                SliderLabel.Size = UDim2.new(1, -20, 0, 20)
+                SliderLabel.Position = UDim2.new(0, 10, 0, 5)
+                SliderLabel.BackgroundTransparency = 1
+                SliderLabel.Text = options.Text or "Slider"
+                SliderLabel.TextColor3 = Window.CurrentTheme.Text
+                SliderLabel.Font = Enum.Font.Gotham
+                SliderLabel.TextSize = 12
+                SliderLabel.TextXAlignment = Enum.TextXAlignment.Left
+                SliderLabel.Parent = SliderFrame
+                
+                table.insert(Window.ThemeableObjects, {Object = SliderLabel, Property = "TextColor3", ThemeKey = "Text"})
+                
+                local SliderValue = Instance.new("TextLabel")
+                SliderValue.Size = UDim2.new(0, 50, 0, 20)
+                SliderValue.Position = UDim2.new(1, -60, 0, 5)
+                SliderValue.BackgroundTransparency = 1
+                SliderValue.Text = tostring(Slider.Value)
+                SliderValue.TextColor3 = Window.CurrentTheme.SubText
+                SliderValue.Font = Enum.Font.GothamBold
+                SliderValue.TextSize = 11
+                SliderValue.TextXAlignment = Enum.TextXAlignment.Right
+                SliderValue.Parent = SliderFrame
+                
+                table.insert(Window.ThemeableObjects, {Object = SliderValue, Property = "TextColor3", ThemeKey = "SubText"})
+                
+                local SliderBar = Instance.new("Frame")
+                SliderBar.Size = UDim2.new(1, -20, 0, 4)
+                SliderBar.Position = UDim2.new(0, 10, 1, -10)
+                SliderBar.BackgroundColor3 = Window.CurrentTheme.Border
+                SliderBar.BorderSizePixel = 0
+                SliderBar.Parent = SliderFrame
+                
+                table.insert(Window.ThemeableObjects, {Object = SliderBar, Property = "BackgroundColor3", ThemeKey = "Border"})
+                
+                local SliderBarCorner = Instance.new("UICorner")
+                SliderBarCorner.CornerRadius = UDim.new(1, 0)
+                SliderBarCorner.Parent = SliderBar
+                
+                local SliderFill = Instance.new("Frame")
+                SliderFill.Size = UDim2.new(0, 0, 1, 0)
+                SliderFill.BackgroundColor3 = Window.CurrentTheme.Accent
+                SliderFill.BorderSizePixel = 0
+                SliderFill.Parent = SliderBar
+                
+                table.insert(Window.ThemeableObjects, {Object = SliderFill, Property = "BackgroundColor3", ThemeKey = "Accent"})
+                
+                local SliderFillCorner = Instance.new("UICorner")
+                SliderFillCorner.CornerRadius = UDim.new(1, 0)
+                SliderFillCorner.Parent = SliderFill
+                
+                local dragging = false
+                
+                function Slider:SetValue(value)
+                    value = math.clamp(value, self.Min, self.Max)
+                    value = math.floor(value / self.Rounding + 0.5) * self.Rounding
+                    self.Value = value
+                    
+                    local percent = (value - self.Min) / (self.Max - self.Min)
+                    SliderFill.Size = UDim2.new(percent, 0, 1, 0)
+                    SliderValue.Text = tostring(value)
+                    
+                    self.Callback(value)
+                end
+                
+                SliderBar.InputBegan:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                        dragging = true
+                    end
+                end)
+                
+                UserInputService.InputEnded:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                        dragging = false
+                    end
+                end)
+                
+                UserInputService.InputChanged:Connect(function(input)
+                    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+                        local pos = (input.Position.X - SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X
+                        pos = math.clamp(pos, 0, 1)
+                        local value = Slider.Min + (Slider.Max - Slider.Min) * pos
+                        Slider:SetValue(value)
+                    end
+                end)
+                
+                Slider:SetValue(Slider.Value)
+                
+                if id then
+                    getgenv().Options[id] = Slider
+                end
+                
+                self.CurrentY = self.CurrentY + 50
+                UpdateCanvasSize()
+                
+                return Slider
+            end
+            
+            -- ═══════════════════════════════════════════════════════════
+            -- ELEMENTO: DROPDOWN
+            -- ═══════════════════════════════════════════════════════════
+            
+            function Groupbox:AddDropdown(id, options)
+                options = options or {}
+                local Dropdown = {
+                    Value = options.Default or "",
+                    Values = options.Values or {},
+                    Multi = options.Multi or false,
+                    Callback = options.Callback or function() end,
+                    Open = false,
+                }
+                
+                local DropdownFrame = Instance.new("Frame")
+                DropdownFrame.Size = UDim2.new(1, -20, 0, 35)
+                DropdownFrame.Position = UDim2.new(0, 10, 0, self.CurrentY)
+                DropdownFrame.BackgroundColor3 = Window.CurrentTheme.Element
+                DropdownFrame.BorderSizePixel = 0
+                DropdownFrame.ClipsDescendants = false
+                DropdownFrame.Parent = GroupFrame
+                
+                table.insert(Window.ThemeableObjects, {Object = DropdownFrame, Property = "BackgroundColor3", ThemeKey = "Element"})
+                
+                local DropdownCorner = Instance.new("UICorner")
+                DropdownCorner.CornerRadius = UDim.new(0, 4)
+                DropdownCorner.Parent = DropdownFrame
+                
+                local DropdownButton = Instance.new("TextButton")
+                DropdownButton.Size = UDim2.new(1, 0, 0, 35)
+                DropdownButton.BackgroundTransparency = 1
+                DropdownButton.Text = ""
+                DropdownButton.Parent = DropdownFrame
+                
+                local DropdownLabel = Instance.new("TextLabel")
+                DropdownLabel.Size = UDim2.new(1, -40, 1, 0)
+                DropdownLabel.Position = UDim2.new(0, 10, 0, 0)
+                DropdownLabel.BackgroundTransparency = 1
+                DropdownLabel.Text = options.Text or "Dropdown"
+                DropdownLabel.TextColor3 = Window.CurrentTheme.Text
+                DropdownLabel.Font = Enum.Font.Gotham
+                DropdownLabel.TextSize = 12
+                DropdownLabel.TextXAlignment = Enum.TextXAlignment.Left
+                DropdownLabel.Parent = DropdownFrame
+                
+                table.insert(Window.ThemeableObjects, {Object = DropdownLabel, Property = "TextColor3", ThemeKey = "Text"})
+                
+                local DropdownIndicator = Instance.new("TextLabel")
+                DropdownIndicator.Size = UDim2.new(0, 20, 1, 0)
+                DropdownIndicator.Position = UDim2.new(1, -30, 0, 0)
+                DropdownIndicator.BackgroundTransparency = 1
+                DropdownIndicator.Text = "▼"
+                DropdownIndicator.TextColor3 = Window.CurrentTheme.SubText
+                DropdownIndicator.Font = Enum.Font.Gotham
+                DropdownIndicator.TextSize = 10
+                DropdownIndicator.Parent = DropdownFrame
+                
+                table.insert(Window.ThemeableObjects, {Object = DropdownIndicator, Property = "TextColor3", ThemeKey = "SubText"})
+                
+                local DropdownList = Instance.new("Frame")
+                DropdownList.Size = UDim2.new(1, 0, 0, 0)
+                DropdownList.Position = UDim2.new(0, 0, 0, 35)
+                DropdownList.BackgroundColor3 = Window.CurrentTheme.Groupbox
+                DropdownList.BorderSizePixel = 0
+                DropdownList.Visible = false
+                DropdownList.ClipsDescendants = true
+                DropdownList.ZIndex = 10
+                DropdownList.Parent = DropdownFrame
+                
+                table.insert(Window.ThemeableObjects, {Object = DropdownList, Property = "BackgroundColor3", ThemeKey = "Groupbox"})
+                
+                local ListCorner = Instance.new("UICorner")
+                ListCorner.CornerRadius = UDim.new(0, 4)
+                ListCorner.Parent = DropdownList
+                
+                local ListLayout = Instance.new("UIListLayout")
+                ListLayout.Padding = UDim.new(0, 2)
+                ListLayout.Parent = DropdownList
+                
+                function Dropdown:Refresh(values)
+                    self.Values = values or self.Values
+                    
+                    for _, child in pairs(DropdownList:GetChildren()) do
+                        if child:IsA("TextButton") then
+                            child:Destroy()
+                        end
+                    end
+                    
+                    for _, value in pairs(self.Values) do
+                        local Option = Instance.new("TextButton")
+                        Option.Size = UDim2.new(1, -4, 0, 25)
+                        Option.BackgroundColor3 = Window.CurrentTheme.Element
+                        Option.BorderSizePixel = 0
+                        Option.Text = value
+                        Option.TextColor3 = Window.CurrentTheme.Text
+                        Option.Font = Enum.Font.Gotham
+                        Option.TextSize = 11
+                        Option.Parent = DropdownList
+                        
+                        table.insert(Window.ThemeableObjects, {Object = Option, Property = "BackgroundColor3", ThemeKey = "Element"})
+                        table.insert(Window.ThemeableObjects, {Object = Option, Property = "TextColor3", ThemeKey = "Text"})
+                        
+                        local OptionCorner = Instance.new("UICorner")
+                        OptionCorner.CornerRadius = UDim.new(0, 3)
+                        OptionCorner.Parent = Option
+                        
+                        Option.MouseButton1Click:Connect(function()
+                            Dropdown:SetValue(value)
+                            Dropdown.Open = false
+                            DropdownList.Visible = false
+                            TweenService:Create(DropdownList, TweenInfo.new(0.2), {Size = UDim2.new(1, 0, 0, 0)}):Play()
+                        end)
+                    end
+                    
+                    local listHeight = #self.Values * 27
+                    DropdownList.Size = UDim2.new(1, 0, 0, Dropdown.Open and listHeight or 0)
+                end
+                
+                function Dropdown:SetValue(value)
+                    self.Value = value
+                    DropdownLabel.Text = (options.Text or "Dropdown") .. ": " .. tostring(value)
+                    self.Callback(value)
+                end
+                
+                DropdownButton.MouseButton1Click:Connect(function()
+                    Dropdown.Open = not Dropdown.Open
+                    DropdownList.Visible = Dropdown.Open
+                    
+                    local listHeight = #Dropdown.Values * 27
+                    TweenService:Create(DropdownList, TweenInfo.new(0.2), {
+                        Size = UDim2.new(1, 0, 0, Dropdown.Open and listHeight or 0)
+                    }):Play()
+                    
+                    if Dropdown.Open then
+                        DropdownFrame.Size = UDim2.new(1, -20, 0, 35 + listHeight)
+                    else
+                        DropdownFrame.Size = UDim2.new(1, -20, 0, 35)
+                    end
+                end)
+                
+                Dropdown:Refresh()
+                
+                if id then
+                    getgenv().Options[id] = Dropdown
+                end
+                
+                self.CurrentY = self.CurrentY + 40
+                UpdateCanvasSize()
+                
+                return Dropdown
+            end
+            
+            -- ═══════════════════════════════════════════════════════════
+            -- ELEMENTO: BUTTON
+            -- ═══════════════════════════════════════════════════════════
+            
+            function Groupbox:AddButton(options)
+                options = options or {}
+                
+                local ButtonFrame = Instance.new("TextButton")
+                ButtonFrame.Size = UDim2.new(1, -20, 0, 32)
+                ButtonFrame.Position = UDim2.new(0, 10, 0, self.CurrentY)
+                ButtonFrame.BackgroundColor3 = Window.CurrentTheme.Accent
+                ButtonFrame.BorderSizePixel = 0
+                ButtonFrame.Text = options.Text or "Button"
+                ButtonFrame.TextColor3 = Color3.fromRGB(255, 255, 255)
+                ButtonFrame.Font = Enum.Font.GothamBold
+                ButtonFrame.TextSize = 12
+                ButtonFrame.Parent = GroupFrame
+                
+                table.insert(Window.ThemeableObjects, {Object = ButtonFrame, Property = "BackgroundColor3", ThemeKey = "Accent"})
+                
+                local ButtonCorner = Instance.new("UICorner")
+                ButtonCorner.CornerRadius = UDim.new(0, 4)
+                ButtonCorner.Parent = ButtonFrame
+                
+                ButtonFrame.MouseButton1Click:Connect(function()
+                    if options.Callback then
+                        options.Callback()
+                    end
+                end)
+                
+                self.CurrentY = self.CurrentY + 37
+                UpdateCanvasSize()
+                
+                return ButtonFrame
+            end
+            
+            -- ═══════════════════════════════════════════════════════════
+            -- ELEMENTO: INPUT (TEXTBOX)
+            -- ═══════════════════════════════════════════════════════════
+            
+            function Groupbox:AddInput(id, options)
+                options = options or {}
+                local Input = {
+                    Value = options.Default or "",
+                    Callback = options.Callback or function() end,
+                }
+                
+                local InputFrame = Instance.new("Frame")
+                InputFrame.Size = UDim2.new(1, -20, 0, 35)
+                InputFrame.Position = UDim2.new(0, 10, 0, self.CurrentY)
+                InputFrame.BackgroundColor3 = Window.CurrentTheme.Element
+                InputFrame.BorderSizePixel = 0
+                InputFrame.Parent = GroupFrame
+                
+                table.insert(Window.ThemeableObjects, {Object = InputFrame, Property = "BackgroundColor3", ThemeKey = "Element"})
+                
+                local InputCorner = Instance.new("UICorner")
+                InputCorner.CornerRadius = UDim.new(0, 4)
+                InputCorner.Parent = InputFrame
+                
+                local InputBox = Instance.new("TextBox")
+                InputBox.Size = UDim2.new(1, -20, 1, 0)
+                InputBox.Position = UDim2.new(0, 10, 0, 0)
+                InputBox.BackgroundTransparency = 1
+                InputBox.PlaceholderText = options.Text or "Enter text..."
+                InputBox.Text = Input.Value
+                InputBox.TextColor3 = Window.CurrentTheme.Text
+                InputBox.PlaceholderColor3 = Window.CurrentTheme.SubText
+                InputBox.Font = Enum.Font.Gotham
+                InputBox.TextSize = 12
+                InputBox.TextXAlignment = Enum.TextXAlignment.Left
+                InputBox.ClearTextOnFocus = false
+                InputBox.Parent = InputFrame
+                
+                table.insert(Window.ThemeableObjects, {Object = InputBox, Property = "TextColor3", ThemeKey = "Text"})
+                table.insert(Window.ThemeableObjects, {Object = InputBox, Property = "PlaceholderColor3", ThemeKey = "SubText"})
+                
+                function Input:SetValue(value)
+                    self.Value = value
+                    InputBox.Text = value
+                    self.Callback(value)
+                end
+                
+                InputBox.FocusLost:Connect(function()
+                    Input:SetValue(InputBox.Text)
+                end)
+                
+                if id then
+                    getgenv().Options[id] = Input
+                end
+                
+                self.CurrentY = self.CurrentY + 40
+                UpdateCanvasSize()
+                
+                return Input
+            end
+            
+            -- ═══════════════════════════════════════════════════════════
+            -- ELEMENTO: LABEL
+            -- ═══════════════════════════════════════════════════════════
+            
+            function Groupbox:AddLabel(text)
+                local LabelFrame = Instance.new("TextLabel")
+                LabelFrame.Size = UDim2.new(1, -20, 0, 25)
+                LabelFrame.Position = UDim2.new(0, 10, 0, self.CurrentY)
+                LabelFrame.BackgroundTransparency = 1
+                LabelFrame.Text = text or "Label"
+                LabelFrame.TextColor3 = Window.CurrentTheme.SubText
+                LabelFrame.Font = Enum.Font.Gotham
+                LabelFrame.TextSize = 11
+                LabelFrame.TextXAlignment = Enum.TextXAlignment.Left
+                LabelFrame.TextWrapped = true
+                LabelFrame.Parent = GroupFrame
+                
+                table.insert(Window.ThemeableObjects, {Object = LabelFrame, Property = "TextColor3", ThemeKey = "SubText"})
+                
+                self.CurrentY = self.CurrentY + 28
+                UpdateCanvasSize()
+                
+                return {
+                    SetText = function(_, newText)
+                        LabelFrame.Text = newText
+                    end
+                }
+            end
+            
+            -- ═══════════════════════════════════════════════════════════
+            -- ELEMENTO: DIVIDER
+            -- ═══════════════════════════════════════════════════════════
+            
+            function Groupbox:AddDivider()
+                local Divider = Instance.new("Frame")
+                Divider.Size = UDim2.new(1, -20, 0, 1)
+                Divider.Position = UDim2.new(0, 10, 0, self.CurrentY)
+                Divider.BackgroundColor3 = Window.CurrentTheme.Border
+                Divider.BorderSizePixel = 0
+                Divider.Parent = GroupFrame
+                
+                table.insert(Window.ThemeableObjects, {Object = Divider, Property = "BackgroundColor3", ThemeKey = "Border"})
+                
+                self.CurrentY = self.CurrentY + 10
+                UpdateCanvasSize()
+            end
+            
+            -- ═══════════════════════════════════════════════════════════
+            -- ELEMENTO: KEYBIND
+            -- ═══════════════════════════════════════════════════════════
+            
+            function Groupbox:AddKeyPicker(id, options)
+                options = options or {}
+                local KeyPicker = {
+                    Value = options.Default or Enum.KeyCode.E,
+                    Mode = options.Mode or "Toggle",
+                    Callback = options.Callback or function() end,
+                    Listening = false,
+                }
+                
+                local KeyFrame = Instance.new("Frame")
+                KeyFrame.Size = UDim2.new(1, -20, 0, 30)
+                KeyFrame.Position = UDim2.new(0, 10, 0, self.CurrentY)
+                KeyFrame.BackgroundColor3 = Window.CurrentTheme.Element
+                KeyFrame.BorderSizePixel = 0
+                KeyFrame.Parent = GroupFrame
+                
+                table.insert(Window.ThemeableObjects, {Object = KeyFrame, Property = "BackgroundColor3", ThemeKey = "Element"})
+                
+                local KeyCorner = Instance.new("UICorner")
+                KeyCorner.CornerRadius = UDim.new(0, 4)
+                KeyCorner.Parent = KeyFrame
+                
+                local KeyLabel = Instance.new("TextLabel")
+                KeyLabel.Size = UDim2.new(1, -90, 1, 0)
+                KeyLabel.Position = UDim2.new(0, 10, 0, 0)
+                KeyLabel.BackgroundTransparency = 1
+                KeyLabel.Text = options.Text or "Keybind"
+                KeyLabel.TextColor3 = Window.CurrentTheme.Text
+                KeyLabel.Font = Enum.Font.Gotham
+                KeyLabel.TextSize = 12
+                KeyLabel.TextXAlignment = Enum.TextXAlignment.Left
+                KeyLabel.Parent = KeyFrame
+                
+                table.insert(Window.ThemeableObjects, {Object = KeyLabel, Property = "TextColor3", ThemeKey = "Text"})
+                
+                local KeyButton = Instance.new("TextButton")
+                KeyButton.Size = UDim2.new(0, 70, 0, 22)
+                KeyButton.Position = UDim2.new(1, -80, 0.5, -11)
+                KeyButton.BackgroundColor3 = Window.CurrentTheme.Border
+                KeyButton.BorderSizePixel = 0
+                KeyButton.Text = KeyPicker.Value.Name
+                KeyButton.TextColor3 = Window.CurrentTheme.Text
+                KeyButton.Font = Enum.Font.GothamBold
+                KeyButton.TextSize = 10
+                KeyButton.Parent = KeyFrame
+                
+                table.insert(Window.ThemeableObjects, {Object = KeyButton, Property = "BackgroundColor3", ThemeKey = "Border"})
+                table.insert(Window.ThemeableObjects, {Object = KeyButton, Property = "TextColor3", ThemeKey = "Text"})
+                
+                local KeyBtnCorner = Instance.new("UICorner")
+                KeyBtnCorner.CornerRadius = UDim.new(0, 3)
+                KeyBtnCorner.Parent = KeyButton
+                
+                function KeyPicker:SetValue(key)
+                    self.Value = key
+                    KeyButton.Text = key.Name
+                end
+                
+                KeyButton.MouseButton1Click:Connect(function()
+                    KeyPicker.Listening = true
+                    KeyButton.Text = "..."
+                end)
+                
+                UserInputService.InputBegan:Connect(function(input, gpe)
+                    if KeyPicker.Listening and not gpe then
+                        if input.UserInputType == Enum.UserInputType.Keyboard then
+                            KeyPicker:SetValue(input.KeyCode)
+                            KeyPicker.Listening = false
+                        end
+                    end
+                    
+                    if not gpe and input.KeyCode == KeyPicker.Value then
+                        KeyPicker.Callback(input.KeyCode)
+                    end
+                end)
+                
+                if id then
+                    getgenv().Options[id] = KeyPicker
+                end
+                
+                self.CurrentY = self.CurrentY + 35
+                UpdateCanvasSize()
+                
+                return KeyPicker
+            end
+            
+            -- ═══════════════════════════════════════════════════════════
+            -- ELEMENTO: COLOR PICKER
+            -- ═══════════════════════════════════════════════════════════
+            
+            function Groupbox:AddColorPicker(id, options)
+                options = options or {}
+                local ColorPicker = {
+                    Value = options.Default or Color3.fromRGB(255, 255, 255),
+                    Callback = options.Callback or function() end,
+                }
+                
+                local ColorFrame = Instance.new("Frame")
+                ColorFrame.Size = UDim2.new(1, -20, 0, 30)
+                ColorFrame.Position = UDim2.new(0, 10, 0, self.CurrentY)
+                ColorFrame.BackgroundColor3 = Window.CurrentTheme.Element
+                ColorFrame.BorderSizePixel = 0
+                ColorFrame.Parent = GroupFrame
+                
+                table.insert(Window.ThemeableObjects, {Object = ColorFrame, Property = "BackgroundColor3", ThemeKey = "Element"})
+                
+                local ColorCorner = Instance.new("UICorner")
+                ColorCorner.CornerRadius = UDim.new(0, 4)
+                ColorCorner.Parent = ColorFrame
+                
+                local ColorLabel = Instance.new("TextLabel")
+                ColorLabel.Size = UDim2.new(1, -60, 1, 0)
+                ColorLabel.Position = UDim2.new(0, 10, 0, 0)
+                ColorLabel.BackgroundTransparency = 1
+                ColorLabel.Text = options.Text or "Color"
+                ColorLabel.TextColor3 = Window.CurrentTheme.Text
+                ColorLabel.Font = Enum.Font.Gotham
+                ColorLabel.TextSize = 12
+                ColorLabel.TextXAlignment = Enum.TextXAlignment.Left
+                ColorLabel.Parent = ColorFrame
+                
+                table.insert(Window.ThemeableObjects, {Object = ColorLabel, Property = "TextColor3", ThemeKey = "Text"})
+                
+                local ColorDisplay = Instance.new("Frame")
+                ColorDisplay.Size = UDim2.new(0, 40, 0, 20)
+                ColorDisplay.Position = UDim2.new(1, -50, 0.5, -10)
+                ColorDisplay.BackgroundColor3 = ColorPicker.Value
+                ColorDisplay.BorderSizePixel = 0
+                ColorDisplay.Parent = ColorFrame
+                
+                local ColorDisplayCorner = Instance.new("UICorner")
+                ColorDisplayCorner.CornerRadius = UDim.new(0, 3)
+                ColorDisplayCorner.Parent = ColorDisplay
+                
+                function ColorPicker:SetValue(color)
+                    self.Value = color
+                    ColorDisplay.BackgroundColor3 = color
+                    self.Callback(color)
+                end
+                
+                -- Exemplo básico de color picker (você pode expandir isso)
+                local ColorButton = Instance.new("TextButton")
+                ColorButton.Size = UDim2.new(1, 0, 1, 0)
+                ColorButton.BackgroundTransparency = 1
+                ColorButton.Text = ""
+                ColorButton.Parent = ColorFrame
+                
+                ColorButton.MouseButton1Click:Connect(function()
+                    -- Aqui você pode adicionar um sistema de color picker mais complexo
+                    local randomColor = Color3.fromRGB(
+                        math.random(0, 255),
+                        math.random(0, 255),
+                        math.random(0, 255)
+                    )
+                    ColorPicker:SetValue(randomColor)
+                end)
+                
+                if id then
+                    getgenv().Options[id] = ColorPicker
+                end
+                
+                self.CurrentY = self.CurrentY + 35
+                UpdateCanvasSize()
+                
+                return ColorPicker
+            end
             
             return Groupbox
         end
